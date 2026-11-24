@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TimeSync Pro — Enterprise Global Meeting Engine</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Main Header -->
+    <header class="app-header" id="tour-step-header">
+      <div class="brand">
+        <div class="brand-icon">🌐</div>
+        <div>
+          <h1>TimeSync Pro <span class="pro-pill">ENTERPRISE</span></h1>
+          <p class="brand-subtitle">Next-day alerts, Google/Outlook 1-click invites, DST checker &amp; JSON backup</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button type="button" id="theme-toggle-btn" class="btn btn-secondary">🌙 Dark Mode</button>
+        <button type="button" id="clock-format-btn" class="btn btn-secondary">🕒 24h Clock</button>
+        <button type="button" id="save-team-btn" class="btn btn-secondary">💾 Save Team</button>
+        <button type="button" id="copy-invite-btn" class="btn btn-secondary">📋 Copy Invite</button>
+        <button type="button" id="share-link-btn" class="btn btn-secondary">🔗 Share Link</button>
+        <button type="button" id="export-ics-btn" class="btn btn-primary">📅 Export .ics</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- Left Section: Interactive Planner -->
+      <section class="planner-panel">
+        <!-- Add Participant Bar -->
+        <div class="card add-participant-card" id="tour-step-add-member">
+          <div class="card-header">
+            <h3>Add Team Member</h3>
+            <span class="badge-tag" id="zone-count-badge">All IANA Zones Loaded</span>
+          </div>
+          <div class="add-person-grid">
+            <input
+              type="text"
+              id="zone-search-input"
+              placeholder="Filter zone (e.g. Kolkata, Tokyo, York)"
+            />
+            <input
+              type="text"
+              id="person-label-input"
+              placeholder="Name / Label (optional, e.g. Rohan)"
+              maxlength="32"
+            />
+            <select id="city-select">
+              <optgroup label="Popular Cities &amp; India" id="popular-optgroup"></optgroup>
+              <optgroup label="All World Time Zones" id="all-zones-optgroup"></optgroup>
+            </select>
+            <button type="button" id="add-person-btn" class="btn btn-primary">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Meeting Slot & Date Controls -->
+        <div class="card controls-card" id="tour-step-controls">
+          <div class="controls-grid-3">
+            <div class="control-group">
+              <label for="meeting-date-input">Meeting Date (DST Aware)</label>
+              <input type="date" id="meeting-date-input" />
+            </div>
+
+            <div class="control-group">
+              <label for="duration-select">Meeting Duration</label>
+              <select id="duration-select">
+                <option value="30">30 Minutes</option>
+                <option value="60" selected>1 Hour</option>
+                <option value="90">1.5 Hours</option>
+                <option value="120">2 Hours</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label for="computed-slot-output">Selected Slot (UTC)</label>
+              <div class="computed-badge">
+                <output id="computed-slot-output">12:00 UTC</output>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slider Control -->
+          <div class="slider-container">
+            <div class="slider-header">
+              <label for="time-slider">Time Slider (00:00 to 23:45 UTC)</label>
+              <span class="help-badge">Drag directly on any timeline or use ◄ / ► keys</span>
+            </div>
+            <input
+              type="range"
+              id="time-slider"
+              min="0"
+              max="95"
+              step="1"
+              value="48"
+              role="slider"
+              aria-valuemin="0"
+              aria-valuemax="95"
+              aria-valuenow="48"
+            />
+          </div>
+
+          <!-- Color Legend -->
+          <div class="legend-bar">
+            <span class="legend-item"><span class="dot work"></span> Custom Working Hours</span>
+            <span class="legend-item"><span class="dot early"></span> Flexible / Buffer Hours</span>
+            <span class="legend-item"><span class="dot night"></span> Night / Off Hours</span>
+          </div>
+        </div>
+
+        <!-- Timelines List -->
+        <div class="timelines-wrapper" id="tour-step-timelines">
+          <ol id="participants-list" class="participants-list"></ol>
+        </div>
+
+        <!-- Best Time This Week Heatmap -->
+        <div class="card heatmap-card" id="tour-step-heatmap">
+          <div class="card-header">
+            <h3>🗓️ Best Time This Week (Mon–Sun)</h3>
+            <span class="badge-tag">Click a cell to pick UTC hour</span>
+          </div>
+          <p class="panel-desc">Duration-aware local-time fairness score across all 7 days for your team.</p>
+          <div id="weekly-heatmap" class="weekly-heatmap"></div>
+        </div>
+      </section>
+
+      <!-- Right Section: Results, Calendar Links, DST & Saved Teams -->
+      <aside class="results-panel" id="tour-step-sidebar">
+        <div class="card">
+          <div class="card-header">
+            <h3>✨ Optimal Meeting Slots</h3>
+            <span class="badge-tag">Click to Apply</span>
+          </div>
+          <p class="panel-desc">Evaluates full meeting duration across every member's custom work hours.</p>
+          <div id="slots-results" class="slots-results"></div>
+        </div>
+
+        <!-- 1-Click Cloud Calendar Scheduling -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🚀 Instant Calendar Invite</h3>
+            <span class="badge-tag">1-Click Open</span>
+          </div>
+          <p class="panel-desc">Create this meeting directly in Google Calendar or Outlook with local time summary.</p>
+          <div class="calendar-links-row">
+            <a id="google-cal-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="flex:1;">📆 Google Calendar</a>
+            <a id="outlook-cal-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex:1;">📨 Outlook Web</a>
+          </div>
+        </div>
+
+        <!-- Recurring DST Shift View -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🌗 Recurring DST Shift Check</h3>
+            <span class="badge-tag">+6 Months</span>
+          </div>
+          <p class="panel-desc">Shows how this same UTC slot shifts locally if repeated in 6 months.</p>
+          <div id="dst-shift-list" class="dst-shift-list"></div>
+        </div>
+
+        <!-- Saved Teams + JSON Backup -->
+        <div class="card saved-teams-card">
+          <div class="card-header">
+            <h3>📁 Saved Teams</h3>
+          </div>
+          <ul id="saved-teams-list" class="saved-teams-list"></ul>
+          <div class="backup-actions">
+            <button type="button" id="export-json-btn" class="btn btn-secondary" style="padding:6px 10px;font-size:0.76rem;">⬇️ Export JSON</button>
+            <button type="button" id="import-json-btn" class="btn btn-secondary" style="padding:6px 10px;font-size:0.76rem;">⬆️ Import JSON</button>
+            <input type="file" id="import-json-file" accept=".json,application/json" style="display:none;" />
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer" id="tour-step-footer">
+      <div class="footer-brand">
+        <strong>TimeSync Pro</strong> — Global Time Zone &amp; Meeting Fairness Planner
+      </div>
+      <div class="footer-links">
+        <button type="button" id="footer-about-btn" class="footer-link-btn">About</button>
+        <button type="button" id="footer-privacy-btn" class="footer-link-btn">Privacy Policy</button>
+        <button type="button" id="footer-guide-btn" class="footer-link-btn footer-guide-highlight">🧭 Guide</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Interactive Arrow Guide Overlay -->
+  <div id="tour-guide-overlay" class="tour-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div id="tour-spotlight" class="tour-spotlight">
+      <span id="tour-pointer-dot" class="tour-pointer-dot" aria-hidden="true"></span>
+    </div>
+    <div id="tour-callout" class="tour-callout">
+      <div class="tour-callout-top">
+        <span id="tour-step-counter" class="badge-tag">Step 1 of 6</span>
+        <button type="button" id="tour-skip-btn" class="tour-close-btn" title="Close guide">✕</button>
+      </div>
+      <div class="tour-arrow-banner" id="tour-arrow-text">↓ Pointing to Add Team Member Section</div>
+      <h3 id="tour-title">Add Team Member</h3>
+      <p id="tour-description">
+        Use this column to filter time zones, enter an optional name/label, pick a city or India (IST), and click <strong>+ Add</strong> to add a participant.
+      </p>
+      <div class="tour-callout-actions">
+        <button type="button" id="tour-prev-btn" class="btn btn-secondary">← Back</button>
+        <div class="tour-right-btns">
+          <button type="button" id="tour-done-skip-btn" class="btn btn-secondary">Skip</button>
+          <button type="button" id="tour-next-btn" class="btn btn-primary">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Modal (About & Privacy Policy) -->
+  <div id="info-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="info-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="info-modal-title">About TimeSync Pro</h3>
+        <button type="button" id="info-modal-close" class="tour-close-btn" aria-label="Close modal">✕</button>
+      </div>
+      <div id="info-modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" id="info-modal-ok" class="btn btn-primary">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
