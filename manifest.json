@@ -1,0 +1,19 @@
+{
+  "name": "TimeSync Pro \u2014 Enterprise Global Meeting Engine",
+  "short_name": "TimeSync Pro",
+  "description": "Responsive global time zone & meeting fairness planner with DST shift checks, weekly heatmap, calendar invites, and offline PWA support.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1f5f9",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

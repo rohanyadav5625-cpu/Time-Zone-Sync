@@ -7,6 +7,7 @@ let is24HourFormat = true;
 let isDarkTheme = false;
 let selectedDateStr = new Date().toISOString().split("T")[0];
 let isDraggingTimeline = false;
+let deferredInstallPrompt = null;
 
 // Tour Guide State
 let currentTourStep = 0;
@@ -75,6 +76,7 @@ const TOUR_STEPS = [
 ];
 
 // DOM Elements
+const installAppBtn = document.getElementById("install-app-btn");
 const zoneSearchInput = document.getElementById("zone-search-input");
 const personLabelInput = document.getElementById("person-label-input");
 const citySelect = document.getElementById("city-select");
@@ -125,6 +127,43 @@ const infoModalBody = document.getElementById("info-modal-body");
 const infoModalClose = document.getElementById("info-modal-close");
 const infoModalOk = document.getElementById("info-modal-ok");
 
+// PWA Registration & Install Prompt
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {
+        // Ignore registration error on restricted file:// origins
+      });
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (installAppBtn) {
+      installAppBtn.classList.remove("hidden");
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    if (installAppBtn) {
+      installAppBtn.classList.add("hidden");
+    }
+    showStatusMessage("TimeSync Pro installed!");
+  });
+
+  if (installAppBtn) {
+    installAppBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installAppBtn.classList.add("hidden");
+    });
+  }
+}
+
 // Toast Helper (English notifications)
 function showStatusMessage(message) {
   let toast = document.getElementById("status-toast");
@@ -133,8 +172,8 @@ function showStatusMessage(message) {
     toast.id = "status-toast";
     toast.style.cssText = `
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      right: max(16px, env(safe-area-inset-right));
       background: #0f172a;
       color: #ffffff;
       padding: 10px 16px;
@@ -294,6 +333,8 @@ function getCustomHourCategory(hour, workStart = 9, workEnd = 17) {
 
 // Initialization
 function init() {
+  registerServiceWorker();
+
   allSupportedZones =
     typeof Intl.supportedValuesOf === "function"
       ? Intl.supportedValuesOf("timeZone")
@@ -428,6 +469,12 @@ function setupEventListeners() {
     }
   });
 
+  window.addEventListener("orientationchange", () => {
+    if (!tourOverlay.classList.contains("hidden")) {
+      setTimeout(() => positionTourStep(currentTourStep), 200);
+    }
+  });
+
   saveTeamBtn.addEventListener("click", saveTeamToLocalStorage);
   copyInviteBtn.addEventListener("click", copyInviteToClipboard);
   shareLinkBtn.addEventListener("click", copyShareableURL);
@@ -526,14 +573,14 @@ function positionTourStep(stepIndex) {
     tourSpotlight.style.width = `${spotWidth}px`;
     tourSpotlight.style.height = `${spotHeight}px`;
 
-    const calloutWidth = Math.min(410, window.innerWidth - 32);
+    const calloutWidth = Math.min(410, window.innerWidth - 24);
     const calloutHeight = tourCallout.offsetHeight || 220;
 
     let calloutLeft = rect.left;
-    if (calloutLeft + calloutWidth > window.innerWidth - 16) {
-      calloutLeft = window.innerWidth - calloutWidth - 16;
+    if (calloutLeft + calloutWidth > window.innerWidth - 12) {
+      calloutLeft = window.innerWidth - calloutWidth - 12;
     }
-    if (calloutLeft < 16) calloutLeft = 16;
+    if (calloutLeft < 12) calloutLeft = 12;
 
     let calloutTop;
     if (rect.bottom + calloutHeight + 18 < window.innerHeight) {
@@ -543,7 +590,7 @@ function positionTourStep(stepIndex) {
       calloutTop = rect.top - calloutHeight - 14;
       tourArrowText.textContent = `↓ ${step.arrow}`;
     } else {
-      calloutTop = Math.max(16, Math.min(window.innerHeight - calloutHeight - 16, rect.top + 16));
+      calloutTop = Math.max(12, Math.min(window.innerHeight - calloutHeight - 12, rect.top + 16));
       tourArrowText.textContent = `← ${step.arrow}`;
     }
 
@@ -565,7 +612,7 @@ function openInfoModal(type) {
     infoModalTitle.textContent = "About TimeSync Pro";
     infoModalBody.innerHTML = `
       <p><strong>TimeSync Pro</strong> helps distributed teams find fair meeting slots across world time zones, including <strong>India (IST)</strong> and custom working hours.</p>
-      <p><strong>Key Capabilities:</strong> DST-aware scheduling, +6 month DST shift checks, weekly fairness heatmap, <code>+1 Day</code> / <code>-1 Day</code> alerts, Google &amp; Outlook calendar links, <code>.ics</code> export, and JSON backup/restore.</p>
+      <p><strong>Key Capabilities:</strong> DST-aware scheduling, +6 month DST shift checks, weekly fairness heatmap, <code>+1 Day</code> / <code>-1 Day</code> alerts, Google &amp; Outlook calendar links, <code>.ics</code> export, offline PWA caching, and JSON backup/restore.</p>
     `;
   }
   infoModalBackdrop.classList.remove("hidden");
@@ -995,8 +1042,8 @@ function renderSavedTeams() {
         <small style="color:var(--text-muted);">${names}</small>
       </div>
       <div class="saved-team-actions">
-        <button type="button" class="btn btn-secondary" style="padding:5px 10px;font-size:0.75rem;" onclick="loadSavedTeam(${i})">Load</button>
-        <button type="button" class="btn btn-danger" style="padding:5px 10px;font-size:0.75rem;" onclick="deleteSavedTeam(${i})">Delete</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="loadSavedTeam(${i})">Load</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSavedTeam(${i})">Delete</button>
       </div>
     `;
     list.appendChild(li);
